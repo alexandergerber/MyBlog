@@ -1,0 +1,181 @@
+---
+title: "Web scraping with rvest"
+author: "Alex"
+date: "2019-08-20T13:09:13-06:00"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE)
+```
+
+There is a really nice tutorial on scraping [trustpilot.com]() on DataCamp ([Web Scraping in R: rvest Tutorial](https://www.datacamp.com/community/tutorials/r-web-scraping-rvest)) which is, however, outdated.
+
+I have rewritten the code so that it can be used for scraping the current version of the page.
+
+As a final result we want to scrape all orange framed information  given the web adress of an online shop e.g. [www.Amazon.com]().
+
+![](/post/web_scraping _with_rvest/figure-html/trustpilot.PNG)
+
+For this we first write a function that is able to scrape all the information from one page. 
+Since on each page only 20 reviews are shown we use this function in a second step to iterate over all review pages for one company to get all reviews. 
+
+The function we are writing requires
+
+```{r, message=FALSE}
+library(tidyverse)
+library(rvest)
+```
+
+
+For the first step I am going top-down, which means I start with the final function and then fill in the gaps. 
+
+The function `get_page_data()` will take an URL, e.g. `"https://www.trustpilot.com/review/www.amazon.com"`, and return all information we want from this page as a `tibble`, the tidyverse equivalent of a `data.frame`. 
+
+```{r}
+get_page_data <- function(url){
+  html <- read_html(url) 
+  tibble(name   = get_name(html),
+         date   = get_date(html),
+         rating = get_rating(html), 
+         title  = get_title(html), 
+         review_text = get_review_text(html)
+         )
+}
+```
+
+`get_name()`, `get_title()` and `get_review_text()` are straight forward. One can use 
+the [https://selectorgadget.com/](Selector Gadget) to find out the CSS selector of these elements. With `rvest::html_nodes()` we can then extract all tags which are using this selector. The information we want is contained in the text between the tags which can be extracted by `rvest::html_text()`.
+With `str_trim()` unecessary leading and following whithespaces are removed to clean up the result.  
+
+```{r}
+get_name <- function(html){
+  html %>%
+    html_nodes(".consumer-information__name") %>%   
+    html_text() %>% 
+    str_trim()
+}
+
+get_title <- function(html){
+  html %>%
+    html_nodes(".link--dark") %>%   
+    html_text() %>% 
+    str_trim()
+}
+
+get_review_text <- function(html){
+  html %>%
+    html_nodes(".review-content__text") %>%   
+    html_text() %>% 
+    str_trim()
+}
+```
+
+Since all of those functions only differ by the used CSS selector a single function would have done the job just as well but I find it this way a bit cleaner. 
+
+To get the star rating we need to slightly adjust the code from above. The Selector Gadget was not really helpful here but I got the desired nodes using the inspection tool of the browser.
+
+Here a couple of selectors are required. There are some more star ratings on the page but we are only interested in the ones included in the review part of the page. 
+
+Furthermore, the information we want is hidden as the alt text of the images of the stars. 
+
+![](/post/web_scraping _with_rvest/figure-html/star_rating.PNG)
+
+Using all this we can pin down the star rating of the reviews to the nodes with `'.review .star-rating img'`.
+
+The alt text can be extractd by `rvest::html_attr(name = 'alt')`.
+With `stingr::str_match()` and the simple regular expression `"[1-5]"`(match all integers from 1 to 5) the numeric value of the star rating is extracted.
+
+```{r}
+get_rating <- function(html){
+html %>%
+  html_nodes('.review .star-rating img') %>%   
+  html_attr(name = 'alt') %>%
+  str_match("[1-5]") %>% 
+  as.numeric 
+}
+```
+
+For the date I used a bit more difficult regular expression. Looking at a typical entry of   
+
+```{r, eval=TRUE}
+'https://www.trustpilot.com/review/www.amazon.com' %>%  
+  read_html %>%
+  html_nodes(".review-content-header__dates") %>%
+  html_text %>%
+  str_trim %>% 
+  magrittr::extract(1) 
+```
+
+we find that only the part 
+`r 'https://www.trustpilot.com/review/www.amazon.com' %>%  
+  read_html %>%
+  html_nodes(".review-content-header__dates") %>%
+  html_text %>%
+  str_trim %>% 
+  magrittr::extract(1) %>%
+  str_match('\\d.+?Z') %>% 
+  lubridate::ymd_hms()` 
+  is of interest. The easiest regex I could come up with to extract this is `'\\d.+?Z'`. The `\\d` says that the first thing we want to match shoud be a digit. Then we want to match every sign (`.+`) until the first `z` is observed (`?z`). The `?` makes the matching lazy so that it will match the shortest possible string. This is needed because if a user updated her review then there would be 2 dates in the string. Without the `?` the pattern would go from the start of the first date to the end of the second date which would mess up the data we get.  
+
+
+```{r}
+get_date <- function(html){
+html %>%  
+  html_nodes(".review-content-header__dates") %>%
+  html_text %>%
+  str_match('\\d.+?Z') %>% 
+  lubridate::ymd_hms()
+ }
+```
+
+Now all pieces are together to run `get_page_data()`.
+
+```{r}
+get_page_data("https://www.trustpilot.com/review/www.amazon.com") %>% print(n = 5)
+```
+
+In the second step we now need to iterate over all URLs of the from 
+`https://www.trustpilot.com/review/www.amazon.com?page=1` to `https://www.trustpilot.com/review/www.amazon.com?page=N`, where `N` is highest page index, in order to get all reviews of a company. The problem is that `N` is not known (or at least I could not find out where this information is hidden). However, if we plug in a number larger than `N` we are navigated back to the first page again. Using this, we can just increment the page number so long until we find an exact duplicate in our extracted date. 
+
+Some companies got quite a lot of reviews. Because of this it will take quite a while to scrape them all. Hence, a upper limit can be provided  which forces the function to stop after it has scraped `num_pages` pages. 
+
+```{r}
+get_company_data <- function(company, num_pages = Inf){
+  i <- 1
+  repeat{
+    if(i == 1){
+     df <- get_page_data(paste0("https://www.trustpilot.com/review/", company, "?page=",i))
+    } else {
+     temp_df <- get_page_data(paste0("https://www.trustpilot.com/review/", company, "?page=",i))
+     if(any(duplicated( rbind(df, temp_df))) | i == num_pages + 1 ) break
+     df <- rbind(df, temp_df)
+    }
+   if(i %% 10 == 0 ) print(i)
+    i <- i + 1
+  }
+  return(df)
+}
+```
+
+
+The function in action
+
+```{r}
+company <- "www.amazon.com"
+amazon_reviews <- get_company_data("www.amazon.com", num_pages = 3)
+print(amazon_reviews, n = 5)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
