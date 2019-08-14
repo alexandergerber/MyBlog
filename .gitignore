@@ -1,5 +1,5 @@
 .RData
 .Rhistory
 *.Rproj
-public/*
+public/
 .Rproj.user/

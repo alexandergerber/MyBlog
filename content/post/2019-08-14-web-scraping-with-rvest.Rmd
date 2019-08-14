@@ -1,8 +1,13 @@
 ---
-title: "Web scraping with rvest"
-author: "Alex"
-date: "2019-08-20T13:09:13-06:00"
-output: html_document
+title: Web Scraping with rvest
+author: 'Alexander Gerber'
+date: '2019-08-14'
+slug: web-scraping-with-rvest
+categories:
+  - web scraping
+tags:
+  - tidyverse
+  - rvest
 ---
 
 ```{r setup, include=FALSE}
@@ -166,6 +171,8 @@ company <- "www.amazon.com"
 amazon_reviews <- get_company_data("www.amazon.com", num_pages = 3)
 print(amazon_reviews, n = 5)
 ```
+
+
 
 
 
