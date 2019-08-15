@@ -7,6 +7,7 @@
     {{ partial "adsense.html" . }}
     <article class="post-content">{{ .Content }}</article>
     <footer class="post-footer">
+      {{ template "_internal/disqus.html" . }}
       {{ if isset .Params "tags" }}
       <ul class="post-tags">
         {{ range $tag := .Params.tags }}
