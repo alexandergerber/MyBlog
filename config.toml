@@ -1,10 +1,10 @@
-baseurl = "/"
+baseurl = "https://focused-aryabhata-2770c7.netlify.com"
 languageCode = "en-us"
 title = "bloggR"
 theme = "hugo-lamp-master"
 googleAnalytics = ""
 disqusShortname = "bloggr-1"
-#ignoreFiles = ["\\.Rmd$", "\\.Rmarkdown$", "_files$", "_cache$"]
+ignoreFiles = ["\\.Rmd$", "\\.Rmarkdown$", "_files$", "_cache$"]
 
 [permalinks]
     post = "/:year/:month/:day/:slug/"
