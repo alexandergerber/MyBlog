@@ -1,0 +1,56 @@
+---
+title: 'Retweet Network '
+author: Alexander Gerber
+date: '2019-08-16'
+slug: retweet-network
+categories:
+  - R
+tags: [networks, twitter]
+cover: /img/cover.jpg
+draft: true
+---
+
+
+```r
+library(rtweet)
+library(httpuv)
+
+api_key <- "Ih4gJTwKISXYrqJ1rs0FdKoN8"
+api_secret <- "9ST1QEsgvmMSjnPWMPpftIRH6b5e0fyQftVwBDEko8EFHgRUE6"
+access_token <- "140869800-HJKEl7HCPvfXhDtW6GEe8fB1EguvHKFGPuJdW9S9"
+access_secret <- "VGws7y0Wf1JU3RUeVf4sfTT2xLPwe2g034LuNY6QblAEY"
+
+create_token(app = "TwitteRStreaming_R", api_key, api_secret, access_token, access_secret)
+
+DT_tweets <- search_tweets(
+  c("@realDonaldTrump"), n = 10, include_rts = F, until = "2019-08-12"
+)
+
+d<- get_timeline("realDonaldTrump")
+
+
+
+get_retweeters("1162345108072742912", n = 200)
+
+
+DT_tweets$retweet_retweet_count
+rtweet::get_retweeters()
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

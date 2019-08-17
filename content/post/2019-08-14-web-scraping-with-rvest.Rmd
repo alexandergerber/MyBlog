@@ -4,7 +4,7 @@ author: 'Alexander Gerber'
 date: '2019-08-14'
 slug: web-scraping-with-rvest
 categories:
-  - web scraping
+  - R
 tags:
   - tidyverse
   - rvest

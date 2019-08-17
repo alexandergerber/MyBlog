@@ -4,7 +4,7 @@ author: 'Alexander Gerber'
 date: '2019-08-14'
 slug: web-scraping-with-rvest
 categories:
-  - web scraping
+  - R
 tags:
   - tidyverse
   - rvest
@@ -79,8 +79,8 @@ html %&gt;%
   html_text %&gt;%
   str_trim %&gt;% 
   magrittr::extract(1) </code></pre>
-<pre><code>## [1] &quot;{\&quot;publishedDate\&quot;:\&quot;2019-08-14T17:36:57Z\&quot;,\&quot;updatedDate\&quot;:null,\&quot;reportedDate\&quot;:null}&quot;</code></pre>
-<p>we find that only the part 2019-08-14 17:36:57 is of interest. The easiest regex I could come up with to extract this is <code>'\\d.+?Z'</code>. The <code>\\d</code> says that the first thing we want to match shoud be a digit. Then we want to match every sign (<code>.+</code>) until the first <code>z</code> is observed (<code>?z</code>). The <code>?</code> makes the matching lazy so that it will match the shortest possible string. This is needed because if a user updated her review then there would be 2 dates in the string. Without the <code>?</code> the pattern would go from the start of the first date to the end of the second date which would mess up the data we get.</p>
+<pre><code>## [1] &quot;{\&quot;publishedDate\&quot;:\&quot;2019-08-15T21:41:08Z\&quot;,\&quot;updatedDate\&quot;:null,\&quot;reportedDate\&quot;:null}&quot;</code></pre>
+<p>we find that only the part 2019-08-15 21:41:08 is of interest. The easiest regex I could come up with to extract this is <code>'\\d.+?Z'</code>. The <code>\\d</code> says that the first thing we want to match shoud be a digit. Then we want to match every sign (<code>.+</code>) until the first <code>z</code> is observed (<code>?z</code>). The <code>?</code> makes the matching lazy so that it will match the shortest possible string. This is needed because if a user updated her review then there would be 2 dates in the string. Without the <code>?</code> the pattern would go from the start of the first date to the end of the second date which would mess up the data we get.</p>
 <pre class="r"><code>get_date &lt;- function(html){
 html %&gt;%  
   html_nodes(&quot;.review-content-header__dates&quot;) %&gt;%
@@ -91,13 +91,13 @@ html %&gt;%
 <p>Now all pieces are together to run <code>get_page_data()</code>.</p>
 <pre class="r"><code>get_page_data(&quot;https://www.trustpilot.com/review/www.amazon.com&quot;) %&gt;% print(n = 5)</code></pre>
 <pre><code>## # A tibble: 20 x 5
-##   name      date                rating title       review_text            
-##   &lt;chr&gt;     &lt;dttm&gt;               &lt;dbl&gt; &lt;chr&gt;       &lt;chr&gt;                  
-## 1 James     2019-08-14 17:36:57      1 Packing is~ Packing is always horr~
-## 2 Sebastia~ 2019-08-14 09:56:14      1 I have two~ &quot;I have two orders tha~
-## 3 Lakshmi ~ 2019-08-14 09:46:23      1 Worst..     Worst... I ordered a p~
-## 4 Rajeev R~ 2019-08-14 08:00:36      1 Never Buy ~ Never Buy Mobile Phone~
-## 5 Ashlei R~ 2019-08-13 22:34:29      1 Amazon suc~ Amazon is just getting~
+##   name      date                rating title        review_text           
+##   &lt;chr&gt;     &lt;dttm&gt;               &lt;dbl&gt; &lt;chr&gt;        &lt;chr&gt;                 
+## 1 Marina F~ 2019-08-15 21:41:08      1 Received a ~ Received a package fu~
+## 2 Chris To~ 2019-08-15 21:36:10      2 Amazon Revi~ Recently, I ordered a~
+## 3 Piotr Pa~ 2019-08-15 20:25:23      1 Amazon is h~ Amazon like many othe~
+## 4 Cintia W~ 2019-08-15 16:39:15      5 I always re~ I always receive my p~
+## 5 Jairo Gu~ 2019-08-15 14:56:12      1 Amazon erro~ Dear Srs.Unfortunatel~
 ## # ... with 15 more rows</code></pre>
 <p>In the second step we now need to iterate over all URLs of the from <code>https://www.trustpilot.com/review/www.amazon.com?page=1</code> to <code>https://www.trustpilot.com/review/www.amazon.com?page=N</code>, where <code>N</code> is highest page index, in order to get all reviews of a company. The problem is that <code>N</code> is not known (or at least I could not find out where this information is hidden). However, if we plug in a number larger than <code>N</code> we are navigated back to the first page again. Using this, we can just increment the page number so long until we find an exact duplicate in our extracted date.</p>
 <p>Some companies got quite a lot of reviews. Because of this it will take quite a while to scrape them all. Hence, a upper limit can be provided which forces the function to stop after it has scraped <code>num_pages</code> pages.</p>
@@ -121,11 +121,11 @@ html %&gt;%
 amazon_reviews &lt;- get_company_data(&quot;www.amazon.com&quot;, num_pages = 3)
 print(amazon_reviews, n = 5)</code></pre>
 <pre><code>## # A tibble: 60 x 5
-##   name      date                rating title       review_text            
-##   &lt;chr&gt;     &lt;dttm&gt;               &lt;dbl&gt; &lt;chr&gt;       &lt;chr&gt;                  
-## 1 James     2019-08-14 17:36:57      1 Packing is~ Packing is always horr~
-## 2 Sebastia~ 2019-08-14 09:56:14      1 I have two~ &quot;I have two orders tha~
-## 3 Lakshmi ~ 2019-08-14 09:46:23      1 Worst..     Worst... I ordered a p~
-## 4 Rajeev R~ 2019-08-14 08:00:36      1 Never Buy ~ Never Buy Mobile Phone~
-## 5 Ashlei R~ 2019-08-13 22:34:29      1 Amazon suc~ Amazon is just getting~
+##   name      date                rating title        review_text           
+##   &lt;chr&gt;     &lt;dttm&gt;               &lt;dbl&gt; &lt;chr&gt;        &lt;chr&gt;                 
+## 1 Marina F~ 2019-08-15 21:41:08      1 Received a ~ Received a package fu~
+## 2 Chris To~ 2019-08-15 21:36:10      2 Amazon Revi~ Recently, I ordered a~
+## 3 Piotr Pa~ 2019-08-15 20:25:23      1 Amazon is h~ Amazon like many othe~
+## 4 Cintia W~ 2019-08-15 16:39:15      5 I always re~ I always receive my p~
+## 5 Jairo Gu~ 2019-08-15 14:56:12      1 Amazon erro~ Dear Srs.Unfortunatel~
 ## # ... with 55 more rows</code></pre>
