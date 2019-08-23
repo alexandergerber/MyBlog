@@ -1,0 +1,126 @@
+---
+title: "Monte Carlo Simulations: for-loop vs. purrr::map"
+author: Alexander Gerber
+date: '2019-08-22'
+slug: monte-carlo-simulations-map-vs-for
+tags:
+  - R
+  - tidyverse
+  - purrr
+  - simulation study
+cover: /img/cover.jpg
+draft: false
+editor_options: 
+  chunk_output_type: console
+---
+
+Usually, I would use a simple for-loop to run small simulation studies. For me it is the most intuitive way. 
+One can virtually see what happens in each iteration and how the results are produced. However, 
+the students I am teaching (mostly economics and business with only a little to no programming knowledge) really struggle to get it right.
+
+I am wondering if it would be beneficial to switch to a functional approach, e.g. the base R `apply` family of functions or the functions provided by the `purrr` package which I will use here.
+
+A very simple simulation, but with the same structure as more complicated ones, might look like this: 
+
+```{r}
+result1 <- numeric(1000)
+set.seed(1)
+for(i in 1:1000){
+  x <- rnorm(10)               #	representative for data simulation 
+  sample_mean <- mean(x)       #	representative for statistical computations 
+  result1[i]  <- sample_mean   #	representative for saving the results 
+}
+```
+
+The same could be done more neatly using `purrr::map()`. 
+
+```{r}
+library(purrr)
+
+sim_mean <- function(i){
+    x <- rnorm(10)
+    mean(x)                        
+} 
+
+set.seed(1)
+result2 <- map_dbl(1:1000, sim_mean)
+```
+
+As you can see, the results are the same. 
+
+```{r}
+all(result1 == result2)
+```
+
+The advantage of the later apporach is in my opinion the more modular structure which makes debugging easier. You write a function which does everything that should be done by a single iteration. If this is working, it can be replicated. That is actually the way I try to explain how to set up a for-loop to beginners. Make the body of the loop work and then build the rest around it. Taking a look at the exams, this advice is often not considered. With the functional approach this behaviour is more or less  enforced.      
+Furthermore, there is no need for setting up placeholders for the results and no worrying about indices, which is also a source of trouble. Forgetting the `[i]` in `result[i] <- ...` is one of the most popular mistakes I encounter.
+
+I think in this example the disadvantages of using `purrr:map()` from a syntactical point of are minor. There is the additional need to write a function and the choice of the return type (because it is a double we use `purrr:map_dbl()`). Using `sapply()` or `replicate()` would be easier here but less suitable for more complicated setups.   
+
+When conducting a simulation study we also want to be able to run it for different parameter values to find out how well e.g. a statistical test works in different circumstances. With `expand.grid()` all combinations of the considered parameter values are generated. For each set of parameters we want to run the simulation. This can be achieved by a nested for-loop. 
+
+```{r}
+parameter <- expand.grid(n  = seq(10,50,10),
+                         sd = c(0.5, 1, 2)
+                         )
+
+result2.1 <- data.frame(mean = rep(NA, 1000 * nrow(parameter)), 
+                        n    = rep(NA, 1000 * nrow(parameter)),
+                        sd   = rep(NA, 1000)* nrow(parameter))
+
+
+set.seed(1)
+for(j in 1:nrow(parameter)){
+  for(i in 1:1000){
+    x <- rnorm(parameter$n[j], sd = parameter$sd[j]) 
+    sample_mean   <- mean(x)                    
+    result2.1[i + 1000 * (j-1), ]  <- c(sample_mean, parameter$n[j], parameter$sd[j])                 
+  }
+}
+```
+
+Now we have 2 indices and a more complicated placeholder for the results which also leads to a sligthly different subsetting. 
+Much oppertunity to get something wrong.
+
+Let's look how this could be done with `purrr:::map()`. 
+First we write a function that computes the result of one Monte Carlo iteration
+given one set of parameters. For this I took the body from the inner for-loop and removed all indices. 
+We also don't need to subset `parameter` if we diretly use `n` and `sd` as function arguments (doing this in the for-loop  would lead to further inconvenience because we would have to either attach `parameter` - which isn't save - or create `n` and `sd` explicitly - which would be an unecessary additional step). The result is much cleaner inner code for the actual computation.
+However, I needed to change the return type to `data.frame` in order to make it work properly in the next step. 
+
+```{r}
+sim_mean <- function(i, n, sd){
+    x           <- rnorm(n, sd = sd) 
+    sample_mean <- mean(x)                    
+    data.frame(sample_mean, n, sd)                       
+} 
+```
+
+The second step, is to write a function that performs the "inner loop". This function also takes `n` and `sd` as additional arguments 
+which are only passed through to `sim_mean()`. Other then this it is just the simulation code from the simple example above wrapped into a function.   
+
+```{r}
+mc_mean <- function(n, sd){
+  map_df(1:1000, sim_mean, n, sd)
+}
+```
+
+Finally, we need the equivalent to the outer loop which iterates over the parameters. 
+Here the function `purrr::pmap()` comes in handy. This function allows to iterate over multiple parameters in an extreamly concise way. We simply provide the entire parameter grid to `purrr::pmap()` which takes a row at a time and passes the values in the columns as arguments to the provided function.  
+
+```{r}
+set.seed(1)
+result2.2 <- pmap_df(parameter, mc_mean)
+```
+
+And again we get the same results using both approaches. 
+
+```{r}
+all(result2.1 == result2.2)
+```
+
+Even if I like the more ellegant functional approach more, I guess it requires more thinking because of the higher level of abstraction compared to a for-loop. However, because of the cleaner syntax it could help beginners to avoid mistakes and write well structured code. 
+Additionally, I will try to use the functions of the `purrr` package more often in my own work since they also work nicely with other packages of the `tidyverse` which I frequently use.  
+ 
+
+
