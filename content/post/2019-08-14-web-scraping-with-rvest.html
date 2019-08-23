@@ -4,27 +4,26 @@ author: 'Alexander Gerber'
 date: '2019-08-14'
 slug: web-scraping-with-rvest
 categories:
-  - R
 tags:
+  - R
   - tidyverse
   - rvest
+draft: true
 ---
 
 
 
 <p>There is a really nice tutorial on scraping <a href="">trustpilot.com</a> on DataCamp (<a href="https://www.datacamp.com/community/tutorials/r-web-scraping-rvest">Web Scraping in R: rvest Tutorial</a>) which is, however, outdated.</p>
 <p>I have rewritten the code so that it can be used for scraping the current version of the page.</p>
-<p>As a final result we want to scrape all orange framed information given the web adress of an online shop e.g. <a href="">www.Amazon.com</a>.</p>
-<div class="figure">
-<img src="/post/web_scraping%20_with_rvest/figure-html/trustpilot.PNG" />
-
-</div>
-<p>For this we first write a function that is able to scrape all the information from one page. Since on each page only 20 reviews are shown we use this function in a second step to iterate over all review pages for one company to get all reviews.</p>
+<p>As a final result we want to scrape all orange framed information given the web adress of an online shop e.g. <a href="">www.Amazon.com</a>.</p>
+<p><img src="/post/web_scraping%20_with_rvest/figure-html/trustpilot.PNG" /></p>
+<p>For this we first write a function that is able to scrape all the information from one page.
+Since on each page only 20 reviews are shown we use this function in a second step to iterate over all review pages for one company to get all reviews.</p>
 <p>The function we are writing requires</p>
 <pre class="r"><code>library(tidyverse)
 library(rvest)</code></pre>
 <p>For the first step I am going top-down, which means I start with the final function and then fill in the gaps.</p>
-<p>The function <code>get_page_data()</code> will take an URL, e.g. <code>&quot;https://www.trustpilot.com/review/www.amazon.com&quot;</code>, and return all information we want from this page as a <code>tibble</code>, the tidyverse equivalent of a <code>data.frame</code>.</p>
+<p>The function <code>get_page_data()</code> will take an URL, e.g. <code>"https://www.trustpilot.com/review/www.amazon.com"</code>, and return all information we want from this page as a <code>tibble</code>, the tidyverse equivalent of a <code>data.frame</code>.</p>
 <pre class="r"><code>get_page_data &lt;- function(url){
   html &lt;- read_html(url) 
   tibble(name   = get_name(html),
@@ -34,7 +33,9 @@ library(rvest)</code></pre>
          review_text = get_review_text(html)
          )
 }</code></pre>
-<p><code>get_name()</code>, <code>get_title()</code> and <code>get_review_text()</code> are straight forward. One can use the <a href="Selector%20Gadget">https://selectorgadget.com/</a> to find out the CSS selector of these elements. With <code>rvest::html_nodes()</code> we can then extract all tags which are using this selector. The information we want is contained in the text between the tags which can be extracted by <code>rvest::html_text()</code>. With <code>str_trim()</code> unecessary leading and following whithespaces are removed to clean up the result.</p>
+<p><code>get_name()</code>, <code>get_title()</code> and <code>get_review_text()</code> are straight forward. One can use
+the <a href="Selector%20Gadget">https://selectorgadget.com/</a> to find out the CSS selector of these elements. With <code>rvest::html_nodes()</code> we can then extract all tags which are using this selector. The information we want is contained in the text between the tags which can be extracted by <code>rvest::html_text()</code>.
+With <code>str_trim()</code> unecessary leading and following whithespaces are removed to clean up the result.</p>
 <pre class="r"><code>get_name &lt;- function(html){
   html %&gt;%
     html_nodes(&quot;.consumer-information__name&quot;) %&gt;%   
@@ -59,12 +60,10 @@ get_review_text &lt;- function(html){
 <p>To get the star rating we need to slightly adjust the code from above. The Selector Gadget was not really helpful here but I got the desired nodes using the inspection tool of the browser.</p>
 <p>Here a couple of selectors are required. There are some more star ratings on the page but we are only interested in the ones included in the review part of the page.</p>
 <p>Furthermore, the information we want is hidden as the alt text of the images of the stars.</p>
-<div class="figure">
-<img src="/post/web_scraping%20_with_rvest/figure-html/star_rating.PNG" />
-
-</div>
+<p><img src="/post/web_scraping%20_with_rvest/figure-html/star_rating.PNG" /></p>
 <p>Using all this we can pin down the star rating of the reviews to the nodes with <code>'.review .star-rating img'</code>.</p>
-<p>The alt text can be extractd by <code>rvest::html_attr(name = 'alt')</code>. With <code>stingr::str_match()</code> and the simple regular expression <code>&quot;[1-5]&quot;</code>(match all integers from 1 to 5) the numeric value of the star rating is extracted.</p>
+<p>The alt text can be extractd by <code>rvest::html_attr(name = 'alt')</code>.
+With <code>stingr::str_match()</code> and the simple regular expression <code>"[1-5]"</code>(match all integers from 1 to 5) the numeric value of the star rating is extracted.</p>
 <pre class="r"><code>get_rating &lt;- function(html){
 html %&gt;%
   html_nodes(&#39;.review .star-rating img&#39;) %&gt;%   
@@ -79,8 +78,10 @@ html %&gt;%
   html_text %&gt;%
   str_trim %&gt;% 
   magrittr::extract(1) </code></pre>
-<pre><code>## [1] &quot;{\&quot;publishedDate\&quot;:\&quot;2019-08-15T21:41:08Z\&quot;,\&quot;updatedDate\&quot;:null,\&quot;reportedDate\&quot;:null}&quot;</code></pre>
-<p>we find that only the part 2019-08-15 21:41:08 is of interest. The easiest regex I could come up with to extract this is <code>'\\d.+?Z'</code>. The <code>\\d</code> says that the first thing we want to match shoud be a digit. Then we want to match every sign (<code>.+</code>) until the first <code>z</code> is observed (<code>?z</code>). The <code>?</code> makes the matching lazy so that it will match the shortest possible string. This is needed because if a user updated her review then there would be 2 dates in the string. Without the <code>?</code> the pattern would go from the start of the first date to the end of the second date which would mess up the data we get.</p>
+<pre><code>## [1] &quot;{\&quot;publishedDate\&quot;:\&quot;2019-08-23T19:58:31Z\&quot;,\&quot;updatedDate\&quot;:null,\&quot;reportedDate\&quot;:null}&quot;</code></pre>
+<p>we find that only the part
+2019-08-23 19:58:31
+is of interest. The easiest regex I could come up with to extract this is <code>'\\d.+?Z'</code>. The <code>\\d</code> says that the first thing we want to match shoud be a digit. Then we want to match every sign (<code>.+</code>) until the first <code>z</code> is observed (<code>?z</code>). The <code>?</code> makes the matching lazy so that it will match the shortest possible string. This is needed because if a user updated her review then there would be 2 dates in the string. Without the <code>?</code> the pattern would go from the start of the first date to the end of the second date which would mess up the data we get.</p>
 <pre class="r"><code>get_date &lt;- function(html){
 html %&gt;%  
   html_nodes(&quot;.review-content-header__dates&quot;) %&gt;%
@@ -91,15 +92,16 @@ html %&gt;%
 <p>Now all pieces are together to run <code>get_page_data()</code>.</p>
 <pre class="r"><code>get_page_data(&quot;https://www.trustpilot.com/review/www.amazon.com&quot;) %&gt;% print(n = 5)</code></pre>
 <pre><code>## # A tibble: 20 x 5
-##   name      date                rating title        review_text           
-##   &lt;chr&gt;     &lt;dttm&gt;               &lt;dbl&gt; &lt;chr&gt;        &lt;chr&gt;                 
-## 1 Marina F~ 2019-08-15 21:41:08      1 Received a ~ Received a package fu~
-## 2 Chris To~ 2019-08-15 21:36:10      2 Amazon Revi~ Recently, I ordered a~
-## 3 Piotr Pa~ 2019-08-15 20:25:23      1 Amazon is h~ Amazon like many othe~
-## 4 Cintia W~ 2019-08-15 16:39:15      5 I always re~ I always receive my p~
-## 5 Jairo Gu~ 2019-08-15 14:56:12      1 Amazon erro~ Dear Srs.Unfortunatel~
+##   name      date                rating title        review_text            
+##   &lt;chr&gt;     &lt;dttm&gt;               &lt;dbl&gt; &lt;chr&gt;        &lt;chr&gt;                  
+## 1 Graham H~ 2019-08-23 19:58:31      1 Amazon is o~ Amazon is only efficie~
+## 2 TS        2019-08-23 19:57:59      1 CUSTOMER SE~ CUSTOMER SERVICE PATHE~
+## 3 Tomer Ma~ 2019-08-23 19:10:29      5 amazon is e~ amazon is excellent, g~
+## 4 Luis Jav~ 2019-08-23 18:56:15      2 After order~ After ordering weekly ~
+## 5 Candice   2019-08-23 14:49:45      5 I use Amazo~ &quot;I use Amazon ALL of t~
 ## # ... with 15 more rows</code></pre>
-<p>In the second step we now need to iterate over all URLs of the from <code>https://www.trustpilot.com/review/www.amazon.com?page=1</code> to <code>https://www.trustpilot.com/review/www.amazon.com?page=N</code>, where <code>N</code> is highest page index, in order to get all reviews of a company. The problem is that <code>N</code> is not known (or at least I could not find out where this information is hidden). However, if we plug in a number larger than <code>N</code> we are navigated back to the first page again. Using this, we can just increment the page number so long until we find an exact duplicate in our extracted date.</p>
+<p>In the second step we now need to iterate over all URLs of the from
+<code>https://www.trustpilot.com/review/www.amazon.com?page=1</code> to <code>https://www.trustpilot.com/review/www.amazon.com?page=N</code>, where <code>N</code> is highest page index, in order to get all reviews of a company. The problem is that <code>N</code> is not known (or at least I could not find out where this information is hidden). However, if we plug in a number larger than <code>N</code> we are navigated back to the first page again. Using this, we can just increment the page number so long until we find an exact duplicate in our extracted date.</p>
 <p>Some companies got quite a lot of reviews. Because of this it will take quite a while to scrape them all. Hence, a upper limit can be provided which forces the function to stop after it has scraped <code>num_pages</code> pages.</p>
 <pre class="r"><code>get_company_data &lt;- function(company, num_pages = Inf){
   i &lt;- 1
@@ -121,11 +123,11 @@ html %&gt;%
 amazon_reviews &lt;- get_company_data(&quot;www.amazon.com&quot;, num_pages = 3)
 print(amazon_reviews, n = 5)</code></pre>
 <pre><code>## # A tibble: 60 x 5
-##   name      date                rating title        review_text           
-##   &lt;chr&gt;     &lt;dttm&gt;               &lt;dbl&gt; &lt;chr&gt;        &lt;chr&gt;                 
-## 1 Marina F~ 2019-08-15 21:41:08      1 Received a ~ Received a package fu~
-## 2 Chris To~ 2019-08-15 21:36:10      2 Amazon Revi~ Recently, I ordered a~
-## 3 Piotr Pa~ 2019-08-15 20:25:23      1 Amazon is h~ Amazon like many othe~
-## 4 Cintia W~ 2019-08-15 16:39:15      5 I always re~ I always receive my p~
-## 5 Jairo Gu~ 2019-08-15 14:56:12      1 Amazon erro~ Dear Srs.Unfortunatel~
+##   name      date                rating title        review_text            
+##   &lt;chr&gt;     &lt;dttm&gt;               &lt;dbl&gt; &lt;chr&gt;        &lt;chr&gt;                  
+## 1 Graham H~ 2019-08-23 19:58:31      1 Amazon is o~ Amazon is only efficie~
+## 2 TS        2019-08-23 19:57:59      1 CUSTOMER SE~ CUSTOMER SERVICE PATHE~
+## 3 Tomer Ma~ 2019-08-23 19:10:29      5 amazon is e~ amazon is excellent, g~
+## 4 Luis Jav~ 2019-08-23 18:56:15      2 After order~ After ordering weekly ~
+## 5 Candice   2019-08-23 14:49:45      5 I use Amazo~ &quot;I use Amazon ALL of t~
 ## # ... with 55 more rows</code></pre>
