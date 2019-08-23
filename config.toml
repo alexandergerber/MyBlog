@@ -25,16 +25,17 @@ ignoreFiles = ["\\.Rmd$", "\\.Rmarkdown$", "_files$", "_cache$"]
     # path to the favicon, under "static"
     favicon = "favicon.ico"
 
-  [[menu.main]]
-    identifier = "about"
-    name = "About"
-    url = "/about/"
+[[menu.main]]
+   identifier = "about"
+   name = "About"
+   url = "/about/"
    weight = 110
 
-[[menu.main]]
-    name = "Categories"
-    url = "/categories/"
-    weight = 3
+# [[menu.main]]
+#    name = "Categories"
+#    url = "/categories/"
+#    weight = 3
+
 [[menu.main]]
     name = "Tags"
     url = "/tags/"
