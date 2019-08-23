@@ -7,7 +7,7 @@ disqusShortname = "bloggr-1"
 ignoreFiles = ["\\.Rmd$", "\\.Rmarkdown$", "_files$", "_cache$"]
 
 [permalinks]
-    post = "/:year/:month/:day/:slug/"
+    post = "/:slug/"
 
 [params]
     description = "A website built through Hugo and blogdown."
