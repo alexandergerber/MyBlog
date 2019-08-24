@@ -21,3 +21,10 @@ HUGO_ENABLEGITINFO = "true"
   status = 301
   force = false
   conditions = {Language = ["en"], Country = ["US"], Role = ["admin"]}    
+
+[[redirects]]
+  from = "https://focused-aryabhata-2770c7.netlify.com/$"
+  to = "https://www.bloggr.net/"
+  status = 301
+  force = false
+  conditions = {Language = ["en"], Country = ["US"], Role = ["admin"]}    
