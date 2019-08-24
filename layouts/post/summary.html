@@ -4,9 +4,9 @@
   {{ if isset .Params "cover" }}
     <a href="{{ .Permalink }}" title="{{ .Title }}">
       <amp-img alt="{{ .Title }}"
-        height="244"
-        layout="fixed-height"
-        class="entry-cover"
+        height="400"
+        width="1920" 
+        layout="responsive"
         src="{{ .Params.cover }}">
       </amp-img>
     </a>

@@ -8,7 +8,7 @@ tags:
   - tidyverse
   - purrr
   - simulation
-cover: /img/cover.jpg
+cover: /img/monte_carlo1.jpg
 draft: false
 editor_options: 
   chunk_output_type: console
