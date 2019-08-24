@@ -14,3 +14,11 @@ HUGO_ENABLEGITINFO = "true"
   force = false
   query = {path = ":path"} # COMMENT: apply this rule for /old-path?path=example
   conditions = {Language = ["en"], Country = ["US"], Role = ["admin"]}    
+
+[[redirects]]
+  from = "https://focused-aryabhata-2770c7.netlify.com/about"
+  to = "https://www.bloggr.net/about 301!"
+  status = 301
+  force = false
+  query = {path = ":path"} # COMMENT: apply this rule for /old-path?path=example
+  conditions = {Language = ["en"], Country = ["US"], Role = ["admin"]}    
