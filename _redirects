@@ -4,8 +4,3 @@
 
 https://focused-aryabhata-2770c7.netlify.com/about https://www.bloggr.net/about 301!
 
-https://focused-aryabhata-2770c7.netlify.com/* https://www.bloggr.net/:splat 301!
-
-
-https://focused-aryabhata-2770c7.netlify.com/$1 https://www.bloggr.net 301!
-
