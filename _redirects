@@ -2,5 +2,5 @@
 
 # Redirect default Netlify subdomain to primary domain
 https://focused-aryabhata-2770c7.netlify.com/* https://www.bloggr.net/:splat 301!
+https://focused-aryabhata-2770c7.netlify.com/$ https://www.bloggr.net 301!
 
-https://focused-aryabhata-2770c7.netlify.com https://www.bloggr.net 301!
