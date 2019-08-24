@@ -12,7 +12,7 @@ tags:
   - furrr
   - future
   - econometrics
-cover: /img/cover.jpg
+cover: /img/parallel_stripes.jpg
 draft: true
 ---
 

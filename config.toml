@@ -1,6 +1,6 @@
 baseurl = "https://focused-aryabhata-2770c7.netlify.com"
 languageCode = "en-us"
-title = "bloggR"
+title = "bloggR » R Programming for Data Science"
 theme = "hugo-lamp-master"
 googleAnalytics = ""
 disqusShortname = "bloggr-1"
@@ -10,7 +10,7 @@ ignoreFiles = ["\\.Rmd$", "\\.Rmarkdown$", "_files$", "_cache$"]
     post = "/:slug/"
 
 [params]
-    description = "A website built through Hugo and blogdown."
+    description = "A blog about R programming and data science related subjects » Machine Learning | Econometrics | Bayesian Statistics. Read more!"
     logo = "/img/logo.jpg"
      github = "alexandergerber"
     # options for highlight.js (version, additional languages, and theme)
