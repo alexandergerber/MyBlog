@@ -14,7 +14,7 @@ editor_options:
   chunk_output_type: console
 ---
 
-Usually, I would use a simple for-loop to run small monte carlo simulations. For me it is the most intuitive way. 
+Usually, I would use a simple for-loop to run small Monte Carlo simulations. For me it is the most intuitive way. 
 One can virtually see what happens in each iteration and how the results are produced. However, 
 the students I am teaching (mostly economics and business with only a little to no programming knowledge) really struggle to get it right.
 
