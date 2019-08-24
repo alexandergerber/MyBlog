@@ -9,7 +9,7 @@ HUGO_ENABLEGITINFO = "true"
 
 [[redirects]]
   from = "https://focused-aryabhata-2770c7.netlify.com/*"
-  to = "https://www.bloggr.net/:splat 301!"
+  to = "https://www.bloggr.net/:splat"
   status = 301
   force = false
   query = {path = ":path"} # COMMENT: apply this rule for /old-path?path=example
@@ -17,8 +17,7 @@ HUGO_ENABLEGITINFO = "true"
 
 [[redirects]]
   from = "https://focused-aryabhata-2770c7.netlify.com/about"
-  to = "https://www.bloggr.net/about 301!"
+  to = "https://www.bloggr.net/about"
   status = 301
   force = false
-  query = {path = ":path"} # COMMENT: apply this rule for /old-path?path=example
   conditions = {Language = ["en"], Country = ["US"], Role = ["admin"]}    
