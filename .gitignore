@@ -3,3 +3,4 @@
 *.Rproj
 public/
 .Rproj.user/
+*.R

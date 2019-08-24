@@ -20,6 +20,7 @@ My Data Science related interests and hence also topics I want to write about in
 <ul>
 <li> R Programming in general</li>
 <li>Databases</li> 
+<li>Econometrics</li>
 <li>Bayesian Statistics </li>
 <li>Machine Learning</li>
 <li>Spatial and time series models</li>
