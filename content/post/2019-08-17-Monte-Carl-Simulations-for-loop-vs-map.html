@@ -1,5 +1,5 @@
 ---
-title: "Monte Carlo Simulations: for-loop vs. purrr::map"
+title: "Monte Carlo Simulations: for-loop vs. purrr::map()"
 author: Alexander Gerber
 date: '2019-08-17'
 slug: monte-carlo-simulations-map-vs-for
@@ -27,11 +27,11 @@ set.seed(1)
 
 # Monte Carlo simulatin
 for(i in 1:1000){
-  x &lt;- rnorm(10)               #    data simulation 
+  x &lt;- rnorm(10)                #   data simulation 
   sample_mean  &lt;- mean(x)       #  statistical computations 
   result1.1[i] &lt;- sample_mean   #   saving the results 
 }</code></pre>
-<p>The same could be done more neatly using <code>purrr::map()</code>.</p>
+<p>The same could be done more neatly using <code>purrr::map_dbl()</code>.</p>
 <pre class="r"><code>library(purrr)
 
 sim_mean &lt;- function(i){
@@ -44,7 +44,7 @@ result1.2 &lt;- map_dbl(1:1000, sim_mean)</code></pre>
 <p>As you can see, the results are the same.</p>
 <pre class="r"><code>all(result1.1 == result1.2)</code></pre>
 <pre><code>## [1] TRUE</code></pre>
-<p>The advantage of the later apporach is in my opinion the more modular structure which makes debugging easier. You write a function which does everything that should be done by a single iteration. If this is working, it can be replicated using one of the <code>map()</code> functions. That is actually the way I try to explain how to set up a for-loop to beginners. Make the body of the loop work and then build the rest around it. Taking a look at the exams, this advice is often not considered. With the functional approach this behaviour is more or less enforced.<br />
+<p>The advantage of the later apporach is in my opinion the more modular structure which makes debugging easier. You write a function which does everything that should be done by a single iteration. If this is working, it can be replicated using one of the <code>purrr:map_*()</code> functions. That is actually the way I try to explain how to set up a for-loop to beginners. Make the body of the loop work and then build the rest around it. This advice, however, is often not considered but would be enforced by functional approach.<br />
 Furthermore, there is no need for setting up placeholders for the results and no worrying about indices, which is also a source of trouble. Forgetting the <code>[i]</code> in <code>result[i] &lt;- ...</code> is one of the most popular mistakes I encounter.</p>
 <p>I think in this example the disadvantages of using <code>purrr:map()</code> from a syntactical point of are minor. There is the additional need to write a function and the choice of the return type (because it is a double we use <code>purrr:map_dbl()</code>).</p>
 <p>When conducting a simulation study we also want to be able to run it for different parameter values to find out how well e.g. a statistical test works under different circumstances. Lets do the simulation for different values for the sample size <code>n</code> and standard deviation <code>sd</code>.</p>
