@@ -30,7 +30,7 @@
   },
   "homepage": "https://github.com/huyb1991/hugo-lamp",
   "devDependencies": {
-    "js-yaml": "3.13.1"
+    "js-yaml": "3.13.1",
     "autoprefixer": "^8.5.1",
     "cssnano": "^3.10.0",
     "node-sass": "^4.9.0",
