@@ -14,8 +14,7 @@
         {{ end }}
       </ul>
       {{ end }}
-      {{ template "_internal/disqus.html" . }}
-      <div class="sharing">
+       <div class="sharing">
         <a class="share share-facebook" target="_blank" href="https://facebook.com/sharer/sharer.php?u={{ .Permalink }}" title="Share on Facebook">
           <svg class="icon icon-facebook" fill="currentColor"><use xlink:href="#icon-facebook" /></svg>
         </a>
@@ -23,6 +22,9 @@
           <svg class="icon icon-twitter" fill="currentColor"><use xlink:href="#icon-twitter" /></svg>
         </a>
       </div>
+      {{ template "_internal/disqus.html" . }}
+    
     </footer>
   </section>
 {{ end }}
+ 
