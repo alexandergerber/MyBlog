@@ -16,16 +16,16 @@ editor_options:
 
 
 
-<p>Usually, I would use a simple for-loop to run small Monte Carlo simulations. For me it is the most intuitive way.
+<p>Usually, I would use a simple for-loop to run small Monte Carlo simulations. For me, it is the most intuitive way.
 One can virtually see what happens in each iteration and how the results are produced. However,
-the students I am teaching (mostly economics and business with only a little to no programming knowledge) really struggle to get it right.</p>
+the students I am teaching (mostly economics and business with only a little to no programming knowledge) struggle to get it right.</p>
 <p>I am wondering if it would be beneficial to switch to a functional approach, e.g. using the base R <code>apply</code> family of functions or the functions provided by the <code>purrr</code> package which I will use here.</p>
 <p>A very simple simulation, but with the same structure as more complicated ones, might look like this:</p>
 <pre class="r"><code># Placeholder for results
 result1.1 &lt;- numeric(1000)
-set.seed(1)
 
-# Monte Carlo simulatin
+# Monte Carlo simulation
+set.seed(1)
 for(i in 1:1000){
   x &lt;- rnorm(10)                # data simulation 
   sample_mean  &lt;- mean(x)       # statistical computations 
@@ -44,15 +44,15 @@ result1.2 &lt;- map_dbl(1:1000, sim_mean)</code></pre>
 <p>As you can see, the results are the same.</p>
 <pre class="r"><code>all(result1.1 == result1.2)</code></pre>
 <pre><code>## [1] TRUE</code></pre>
-<p>The advantage of the later apporach is in my opinion the more modular structure which makes debugging easier. You write a function which does everything that should be done by a single iteration. If this is working, it can be replicated using one of the <code>purrr:map_*()</code> functions. That is actually the way I try to explain how to set up a for-loop to beginners. Make the body of the loop work and then build the rest around it. This advice, however, is often not considered but would be enforced by the functional approach.<br />
+<p>The advantage of the latter approach is, in my opinion, the more modular structure which makes debugging easier. You write a function that does everything that should be done by a single iteration. If this is working, it can be replicated using one of the <code>purrr:map_*()</code> functions. That is the way I try to explain how to set up a for-loop to beginners. Make the body of the loop work and then build the rest around it. This advice, however, is often not considered but would be enforced by the functional approach.<br />
 Furthermore, there is no need for setting up placeholders for the results and no worrying about indices, which is also a source of trouble. Forgetting the <code>[i]</code> in <code>result[i] &lt;- ...</code> is one of the most popular mistakes I encounter.</p>
 <p>I think in this example the disadvantages of using <code>purrr:map()</code> from a syntactical point are minor. There is the additional need to write a function and the choice of the return type (because it is a double we use <code>purrr:map_dbl()</code>).</p>
-<p>When conducting a simulation study we also want to be able to run it for different parameter values to find out how well e.g. a statistical test works under different circumstances. Lets do the simulation for different values for the sample size <code>n</code> and standard deviation <code>sd</code>.</p>
+<p>When conducting a simulation study we also want to be able to run it for different parameter values to find out how well e.g. a statistical test works under different circumstances. Let’s do the simulation for different values for the sample size <code>n</code> and standard deviation <code>sd</code>.</p>
 <p>With <code>expand.grid()</code> all combinations of the considered parameter values are generated. For each set of parameters we want to run the simulation.</p>
 <pre class="r"><code>parameter &lt;- expand.grid(n  = seq(10,50,10),
                          sd = c(0.5, 1, 2)
                          )</code></pre>
-<p>One way to achieve this is using a nested for-loop. As a result we want a data.frame that contains the sampled means and the parameter values that are changing, since we later on want to compare the results.</p>
+<p>One way to achieve this is using a nested for-loop. As a result we want a data frame that contains the sampled means and the parameter values which were used.</p>
 <pre class="r"><code># Placeholder for results
 result2.1 &lt;- data.frame(mean = rep(NA, 1000 * nrow(parameter)), 
                         n    = rep(NA, 1000 * nrow(parameter)),
@@ -70,26 +70,26 @@ for(j in 1:nrow(parameter)){
 }</code></pre>
 <p>Now we have 2 indices, a more complicated placeholder for the results and more complicated subsetting.
 Much opportunity to get something wrong.</p>
-<p>Let’s look how this could be done with <code>purrr</code>.
-First we write a function that computes the result of one Monte Carlo iteration
-given one set of parameters. For this I took the body from the inner for-loop and removed all indices. We also don’t need to subset <code>parameter</code> if we diretly use <code>n</code> and <code>sd</code> as function arguments (doing this in the for-loop would lead to further inconvenience because we would have to either attach <code>parameter</code> - which isn’t save - or create <code>n</code> and <code>sd</code> explicitly - which would be an unecessary additional step). The result is much cleaner inner code for the actual computation.
-However, I needed to change the return type to <code>data.frame</code> in order to make it work properly in the next step.</p>
+<p>Let’s look at how this could be done with <code>purrr</code>.
+First, we write a function that computes the result of one Monte Carlo iteration
+given one set of parameters. For this, I took the body from the inner for-loop and removed all indices. We also don’t need to subset <code>parameter</code> if we directly use <code>n</code> and <code>sd</code> as function arguments (doing this in the for-loop would lead to further inconvenience because we would have to either attach <code>parameter</code> - which isn’t save - or create <code>n</code> and <code>sd</code> explicitly - which would be an unnecessary additional step). The result is much cleaner inner code for the actual computation.
+However, I needed to change the return type to <code>data.frame</code> to make it work properly in the next step.</p>
 <pre class="r"><code>sim_mean &lt;- function(i, n, sd){
     x           &lt;- rnorm(n, sd = sd) 
     sample_mean &lt;- mean(x)                    
     data.frame(sample_mean, n, sd)                       
 } </code></pre>
-<p>The second step, is to write a function that performs the “inner loop”. This function also takes <code>n</code> and <code>sd</code> as additional arguments
-which are only passed through to <code>sim_mean()</code>. Other then this it is just the simulation code from the simple example above wrapped into a function.</p>
+<p>The second step, is to write a function that performs the inner loop. This function also takes <code>n</code> and <code>sd</code> as additional arguments
+which are passed through to <code>sim_mean()</code>. Other than this it is just the code from the simple example above wrapped into a function.</p>
 <pre class="r"><code>mc_mean &lt;- function(n, sd){
   map_dfr(1:1000, sim_mean, n, sd)
 }</code></pre>
 <p>Finally, we need the equivalent to the outer loop which iterates over the parameters.
-Here the function <code>purrr::pmap_dfr()</code> comes in handy. This function allows to iterate over multiple parameters in an extreamly concise way. We simply provide the entire parameter grid to <code>purrr::pmap_dfr()</code> which takes a row at a time and passes the values in the columns as arguments to the provided function. The additionally <code>dfr</code> tells us that a data.frame is returned created by row binding.</p>
+Here the function <code>purrr::pmap_dfr()</code> comes in handy. This function allows iterating over multiple parameters in an extremely concise way. We simply provide the entire parameter grid to <code>purrr::pmap_dfr()</code> which takes a row at a time and passes the values in the columns as arguments to the provided function. The additionally <code>dfr</code> tells us that a data frame is returned created by row binding.</p>
 <pre class="r"><code>set.seed(1)
 result2.2 &lt;- pmap_dfr(parameter, mc_mean)</code></pre>
 <p>And again we get the same results using both approaches.</p>
 <pre class="r"><code>all(result2.1 == result2.2)</code></pre>
 <pre><code>## [1] TRUE</code></pre>
-<p>Even if I like the more ellegant functional approach more, I guess it requires more thinking because of the higher level of abstraction compared to a for-loop. However, because of the cleaner syntax it could help beginners to avoid mistakes and write well structured code.
+<p>Even if I like the more elegant functional approach more, I guess it requires more thinking because of the higher level of abstraction compared to a for-loop. However, because of the cleaner syntax, it could help beginners to avoid mistakes and write well-structured code.
 Additionally, I will try to use the functions of the <code>purrr</code> package more often in my own work since they also work nicely with other packages of the <code>tidyverse</code> which I frequently use.</p>
