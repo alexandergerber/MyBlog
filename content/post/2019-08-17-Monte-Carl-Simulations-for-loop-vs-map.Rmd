@@ -30,7 +30,7 @@ set.seed(1)
 # Monte Carlo simulatin
 for(i in 1:1000){
   x <- rnorm(10)                #	data simulation 
-  sample_mean  <- mean(x)       #  statistical computations 
+  sample_mean  <- mean(x)       # statistical computations 
   result1.1[i] <- sample_mean   #	saving the results 
 }
 ```
@@ -55,10 +55,10 @@ As you can see, the results are the same.
 all(result1.1 == result1.2)
 ```
 
-The advantage of the later apporach is in my opinion the more modular structure which makes debugging easier. You write a function which does everything that should be done by a single iteration. If this is working, it can be replicated using one of the `purrr:map_*()` functions. That is actually the way I try to explain how to set up a for-loop to beginners. Make the body of the loop work and then build the rest around it. This advice, however, is often not considered but would be enforced by functional approach.      
+The advantage of the later apporach is in my opinion the more modular structure which makes debugging easier. You write a function which does everything that should be done by a single iteration. If this is working, it can be replicated using one of the `purrr:map_*()` functions. That is actually the way I try to explain how to set up a for-loop to beginners. Make the body of the loop work and then build the rest around it. This advice, however, is often not considered but would be enforced by the functional approach.      
 Furthermore, there is no need for setting up placeholders for the results and no worrying about indices, which is also a source of trouble. Forgetting the `[i]` in `result[i] <- ...` is one of the most popular mistakes I encounter.
 
-I think in this example the disadvantages of using `purrr:map()` from a syntactical point of are minor. There is the additional need to write a function and the choice of the return type (because it is a double we use `purrr:map_dbl()`).  
+I think in this example the disadvantages of using `purrr:map()` from a syntactical point are minor. There is the additional need to write a function and the choice of the return type (because it is a double we use `purrr:map_dbl()`).  
 
 When conducting a simulation study we also want to be able to run it for different parameter values to find out how well e.g. a statistical test works under different circumstances. Lets do the simulation for different values for the sample size `n` and standard deviation `sd`. 
 
@@ -111,16 +111,16 @@ which are only passed through to `sim_mean()`. Other then this it is just the si
 
 ```{r}
 mc_mean <- function(n, sd){
-  map_df(1:1000, sim_mean, n, sd)
+  map_dfr(1:1000, sim_mean, n, sd)
 }
 ```
 
 Finally, we need the equivalent to the outer loop which iterates over the parameters. 
-Here the function `purrr::pmap()` comes in handy. This function allows to iterate over multiple parameters in an extreamly concise way. We simply provide the entire parameter grid to `purrr::pmap()` which takes a row at a time and passes the values in the columns as arguments to the provided function.  
+Here the function `purrr::pmap_dfr()` comes in handy. This function allows to iterate over multiple parameters in an extreamly concise way. We simply provide the entire parameter grid to `purrr::pmap_dfr()` which takes a row at a time and passes the values in the columns as arguments to the provided function. The additionally `dfr` tells us that a data.frame is returned created by row binding.    
 
 ```{r}
 set.seed(1)
-result2.2 <- pmap_df(parameter, mc_mean)
+result2.2 <- pmap_dfr(parameter, mc_mean)
 ```
 
 And again we get the same results using both approaches. 
