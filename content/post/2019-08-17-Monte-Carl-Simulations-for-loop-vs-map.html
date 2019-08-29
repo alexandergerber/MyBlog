@@ -31,7 +31,7 @@ for(i in 1:1000){
   sample_mean  &lt;- mean(x)       # statistical computations 
   result1.1[i] &lt;- sample_mean   #   saving the results 
 }</code></pre>
-<p>The same could be done more neatly using <code>purrr::map_dbl()</code>.</p>
+<p>The same can be done more neatly using <code>purrr::map_dbl()</code>.</p>
 <pre class="r"><code>library(purrr)
 
 sim_mean &lt;- function(i){
@@ -44,9 +44,9 @@ result1.2 &lt;- map_dbl(1:1000, sim_mean)</code></pre>
 <p>As you can see, the results are the same.</p>
 <pre class="r"><code>all(result1.1 == result1.2)</code></pre>
 <pre><code>## [1] TRUE</code></pre>
-<p>The advantage of the later apporach is in my opinion the more modular structure which makes debugging easier. You write a function which does everything that should be done by a single iteration. If this is working, it can be replicated using one of the <code>purrr:map_*()</code> functions. That is actually the way I try to explain how to set up a for-loop to beginners. Make the body of the loop work and then build the rest around it. This advice, however, is often not considered but would be enforced by functional approach.<br />
+<p>The advantage of the later apporach is in my opinion the more modular structure which makes debugging easier. You write a function which does everything that should be done by a single iteration. If this is working, it can be replicated using one of the <code>purrr:map_*()</code> functions. That is actually the way I try to explain how to set up a for-loop to beginners. Make the body of the loop work and then build the rest around it. This advice, however, is often not considered but would be enforced by the functional approach.<br />
 Furthermore, there is no need for setting up placeholders for the results and no worrying about indices, which is also a source of trouble. Forgetting the <code>[i]</code> in <code>result[i] &lt;- ...</code> is one of the most popular mistakes I encounter.</p>
-<p>I think in this example the disadvantages of using <code>purrr:map()</code> from a syntactical point of are minor. There is the additional need to write a function and the choice of the return type (because it is a double we use <code>purrr:map_dbl()</code>).</p>
+<p>I think in this example the disadvantages of using <code>purrr:map()</code> from a syntactical point are minor. There is the additional need to write a function and the choice of the return type (because it is a double we use <code>purrr:map_dbl()</code>).</p>
 <p>When conducting a simulation study we also want to be able to run it for different parameter values to find out how well e.g. a statistical test works under different circumstances. Lets do the simulation for different values for the sample size <code>n</code> and standard deviation <code>sd</code>.</p>
 <p>With <code>expand.grid()</code> all combinations of the considered parameter values are generated. For each set of parameters we want to run the simulation.</p>
 <pre class="r"><code>parameter &lt;- expand.grid(n  = seq(10,50,10),
@@ -82,12 +82,12 @@ However, I needed to change the return type to <code>data.frame</code> in order 
 <p>The second step, is to write a function that performs the “inner loop”. This function also takes <code>n</code> and <code>sd</code> as additional arguments
 which are only passed through to <code>sim_mean()</code>. Other then this it is just the simulation code from the simple example above wrapped into a function.</p>
 <pre class="r"><code>mc_mean &lt;- function(n, sd){
-  map_df(1:1000, sim_mean, n, sd)
+  map_dfr(1:1000, sim_mean, n, sd)
 }</code></pre>
 <p>Finally, we need the equivalent to the outer loop which iterates over the parameters.
-Here the function <code>purrr::pmap()</code> comes in handy. This function allows to iterate over multiple parameters in an extreamly concise way. We simply provide the entire parameter grid to <code>purrr::pmap()</code> which takes a row at a time and passes the values in the columns as arguments to the provided function.</p>
+Here the function <code>purrr::pmap_dfr()</code> comes in handy. This function allows to iterate over multiple parameters in an extreamly concise way. We simply provide the entire parameter grid to <code>purrr::pmap_dfr()</code> which takes a row at a time and passes the values in the columns as arguments to the provided function. The additionally <code>dfr</code> tells us that a data.frame is returned created by row binding.</p>
 <pre class="r"><code>set.seed(1)
-result2.2 &lt;- pmap_df(parameter, mc_mean)</code></pre>
+result2.2 &lt;- pmap_dfr(parameter, mc_mean)</code></pre>
 <p>And again we get the same results using both approaches.</p>
 <pre class="r"><code>all(result2.1 == result2.2)</code></pre>
 <pre><code>## [1] TRUE</code></pre>
