@@ -29,9 +29,9 @@ set.seed(1)
 
 # Monte Carlo simulatin
 for(i in 1:1000){
-  x <- rnorm(10)                #	data simulation 
+  x <- rnorm(10)                # data simulation 
   sample_mean  <- mean(x)       # statistical computations 
-  result1.1[i] <- sample_mean   #	saving the results 
+  result1.1[i] <- sample_mean   # saving the results 
 }
 ```
 
