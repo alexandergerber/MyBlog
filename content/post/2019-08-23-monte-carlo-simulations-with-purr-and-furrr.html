@@ -114,7 +114,7 @@ res2 &lt;- future_pmap_dfr(parameter_grid, mc_t_stat)
   geom_line() + 
   geom_abline(intercept = 0.05, slope = 0, linetype = &quot;dashed&quot;)  + 
   geom_vline(aes(xintercept = 0), linetype = &quot;dashed&quot;)</code></pre>
-<p><img src="/post/2019-08-23-monte-carlo-simulations-with-purr-and-furrr_files/figure-html/unnamed-chunk-6-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p><img src="/post/2019-08-23-monte-carlo-simulations-with-purr-and-furrr_files/figure-html/unnamed-chunk-6-1.png" width="1152" style="display: block; margin: auto;" /></p>
 <p>We would expect that the test rejects in 5 percent of the
 cases if the null hypothesis is true. That is the case when <span class="math inline">\(\beta_2 = 0\)</span>. However, we
 find that under heteroscedasticity the test with the non-robust standard errors rejects too often (the curves should go through the point where the two dashed lines intersect). This
