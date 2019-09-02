@@ -78,9 +78,9 @@ html %&gt;%
   html_text %&gt;%
   str_trim %&gt;% 
   magrittr::extract(1) </code></pre>
-<pre><code>## [1] &quot;{\&quot;publishedDate\&quot;:\&quot;2019-08-24T15:18:38Z\&quot;,\&quot;updatedDate\&quot;:null,\&quot;reportedDate\&quot;:null}&quot;</code></pre>
+<pre><code>## [1] &quot;{\&quot;publishedDate\&quot;:\&quot;2019-08-26T10:01:15Z\&quot;,\&quot;updatedDate\&quot;:null,\&quot;reportedDate\&quot;:null}&quot;</code></pre>
 <p>we find that only the part
-2019-08-24 15:18:38
+2019-08-26 10:01:15
 is of interest. The easiest regex I could come up with to extract this is <code>'\\d.+?Z'</code>. The <code>\\d</code> says that the first thing we want to match shoud be a digit. Then we want to match every sign (<code>.+</code>) until the first <code>z</code> is observed (<code>?z</code>). The <code>?</code> makes the matching lazy so that it will match the shortest possible string. This is needed because if a user updated her review then there would be 2 dates in the string. Without the <code>?</code> the pattern would go from the start of the first date to the end of the second date which would mess up the data we get.</p>
 <pre class="r"><code>get_date &lt;- function(html){
 html %&gt;%  
@@ -92,13 +92,13 @@ html %&gt;%
 <p>Now all pieces are together to run <code>get_page_data()</code>.</p>
 <pre class="r"><code>get_page_data(&quot;https://www.trustpilot.com/review/www.amazon.com&quot;) %&gt;% print(n = 5)</code></pre>
 <pre><code>## # A tibble: 20 x 5
-##   name     date                rating title            review_text         
-##   &lt;chr&gt;    &lt;dttm&gt;               &lt;dbl&gt; &lt;chr&gt;            &lt;chr&gt;               
-## 1 Allison~ 2019-08-24 15:18:38      1 Amazon rejectin~ &quot;Amazon are allowin~
-## 2 Alexand~ 2019-08-24 14:42:28      1 Amazon left my ~ AMAZON has no compl~
-## 3 Alan joa 2019-08-24 14:39:17      1 Very bad custom~ Very bad customer s~
-## 4 Tom McL~ 2019-08-24 13:52:45      5 One of the grea~ One of the greatest~
-## 5 Bernade~ 2019-08-24 11:37:06      1 Unreliable and ~ Amazon delivered my~
+##   name    date                rating title           review_text           
+##   &lt;chr&gt;   &lt;dttm&gt;               &lt;dbl&gt; &lt;chr&gt;           &lt;chr&gt;                 
+## 1 Devans~ 2019-08-26 10:01:15      1 Amazon very Ba~ Amazon very Bad Porta~
+## 2 Millen~ 2019-08-26 05:22:58      4 All over store  Good for people who D~
+## 3 Daniel  2019-08-26 05:12:25      1 I bought a Pro~ I bought a Product on~
+## 4 Dollie~ 2019-08-26 02:04:23      1 Horrible deliv~ Horrible delivery, do~
+## 5 April ~ 2019-08-26 01:33:53      1 Very bad exper~ Very bad experience w~
 ## # ... with 15 more rows</code></pre>
 <p>In the second step we now need to iterate over all URLs of the from
 <code>https://www.trustpilot.com/review/www.amazon.com?page=1</code> to <code>https://www.trustpilot.com/review/www.amazon.com?page=N</code>, where <code>N</code> is highest page index, in order to get all reviews of a company. The problem is that <code>N</code> is not known (or at least I could not find out where this information is hidden). However, if we plug in a number larger than <code>N</code> we are navigated back to the first page again. Using this, we can just increment the page number so long until we find an exact duplicate in our extracted date.</p>
@@ -123,11 +123,11 @@ html %&gt;%
 amazon_reviews &lt;- get_company_data(&quot;www.amazon.com&quot;, num_pages = 3)
 print(amazon_reviews, n = 5)</code></pre>
 <pre><code>## # A tibble: 60 x 5
-##   name     date                rating title            review_text         
-##   &lt;chr&gt;    &lt;dttm&gt;               &lt;dbl&gt; &lt;chr&gt;            &lt;chr&gt;               
-## 1 Allison~ 2019-08-24 15:18:38      1 Amazon rejectin~ &quot;Amazon are allowin~
-## 2 Alexand~ 2019-08-24 14:42:28      1 Amazon left my ~ AMAZON has no compl~
-## 3 Alan joa 2019-08-24 14:39:17      1 Very bad custom~ Very bad customer s~
-## 4 Tom McL~ 2019-08-24 13:52:45      5 One of the grea~ One of the greatest~
-## 5 Bernade~ 2019-08-24 11:37:06      1 Unreliable and ~ Amazon delivered my~
+##   name    date                rating title           review_text           
+##   &lt;chr&gt;   &lt;dttm&gt;               &lt;dbl&gt; &lt;chr&gt;           &lt;chr&gt;                 
+## 1 Devans~ 2019-08-26 10:01:15      1 Amazon very Ba~ Amazon very Bad Porta~
+## 2 Millen~ 2019-08-26 05:22:58      4 All over store  Good for people who D~
+## 3 Daniel  2019-08-26 05:12:25      1 I bought a Pro~ I bought a Product on~
+## 4 Dollie~ 2019-08-26 02:04:23      1 Horrible deliv~ Horrible delivery, do~
+## 5 April ~ 2019-08-26 01:33:53      1 Very bad exper~ Very bad experience w~
 ## # ... with 55 more rows</code></pre>

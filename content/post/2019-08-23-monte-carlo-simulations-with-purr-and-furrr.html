@@ -1,9 +1,8 @@
 ---
-title: Monte Carlo Simulations with purr and furrr
+title: "Monte Carlo Simulations: Going parallel with the furrr package"  
 author: Alexander Gerber
-date: '2019-08-23'
-slug: monte-carlo-simulations-with-purr-and-furrr
-categories: []
+date: '2019-09-02'
+slug: going-parallel-with-the-furrr
 tags:
   - R
   - tidyverse
@@ -13,72 +12,111 @@ tags:
   - future
   - econometrics
 cover: /img/parallel_stripes.jpg
-draft: true
+draft: false
+editor_options: 
+  chunk_output_type: console
 ---
 
 
 
 <p>In the last post I showed how to use <code>purrr</code> to perform a simple Monte Carlo simulation.
-Since simulation studies are usually computationally quite expansive, it is usually benifical to
-write efficient code and, maybe even more important when working on a modern computers, make use of parallelization.</p>
-<p>I am working on a PC with a Ryzen 3700X processor with 8 cores and 16 threads and it would be a waste of
-ressources not to go parallel. If we use <code>purrr</code> it is even extremly simple to do so as we will see.</p>
-<p>In the simulation study I will show why it is usually recommendable to use heteroscedasticity robust standard errors in linear regression. I don’t want to go into the econometric details which can be found in every textbook.</p>
-<p>Similar to the last post I start by writing a function which</p>
+Since simulation studies are usually computationally expensive, it is benifical to
+write efficient code and make use of parallelization. The latter even more important when working on a modern computer.</p>
+<p>My PC has a Ryzen 3700X CPU with 8 cores and 16 threads. For longer computations it would be a waste of
+ressources not to go parallel when possible. If there is code using <code>purrr::map_*()</code> it is extremly simple to do so by replacing it with <code>furrr::future_map_*()</code>.</p>
+<p>I will use an example from econometrics where we will compare heteroscedasticity robust with non-robust standard errors when testing the hypothesis <span class="math inline">\(H_0: \beta_i = 0\)</span> in the simple linear regression model</p>
+<p><span class="math display">\[y_i = \beta_1 + \beta_2 x_i + u_i\]</span></p>
+<p>where <span class="math inline">\(u_i \sim N(0, \sigma_i^2)\)</span>.</p>
+<p>Similar to the last post I start by writing a function which…</p>
 <ol style="list-style-type: decimal">
-<li>Generates random data ( here according to the simple linear regression model with either homoskedastic or heteroscedastic errors.</li>
-<li>Does some statistical computations (here fitting a linear model with OLS, computeing standard errors, t-statistic and p-values)</li>
-<li>Returns a data.frame with the results and the used parameters</li>
+<li>…generates some data (according to the simple linear regression model with either homoscedastic or heteroscedastic errors).</li>
+<li>…does some statistical computations (here fitting a linear model with OLS, computing standard errors, t-statistics and p-values).</li>
+<li>…returns a data frame with the results and the used parameters.</li>
 </ol>
-<pre class="r"><code>sample_t_stat &lt;- function(n = 100, beta = c(0.5, 0.5), beta_0 = c(0, 0), error_dist = c(&quot;homo&quot;), 
-                          standard_error = c(&quot;normal&quot;)){
+<pre class="r"><code>library(tidyverse) # contains purrr and some other packages I will use
+library(furrr)
+
+sample_t_stat &lt;- function(n = 100, beta = c(0.5, 0.5), beta_0 = c(0, 0), error_dist = &quot;homoscedastic&quot;, 
+                          standard_error = &quot;normal&quot;){
   
-  # Generate data 
+  # generate data 
   X       &lt;- cbind(rep(1,n), runif(n,-4,4))
   
   
   u &lt;- switch(error_dist,
-              homo     = rnorm(n, sd = 2),
-              hetero   = rnorm(n, sd = sqrt(abs(X[ ,2]))), # same uncoditional variance as for homoscedasticity
+              homoscedastic     = rnorm(n, sd = 2),
+              heteroscedastic   = rnorm(n, sd = sqrt(abs(X[ ,2]))), # same uncoditional variance as for homoscedasticity
               stop(&quot;Unknown distribution&quot;)
   )
   y       &lt;- X %*% matrix(beta) + u
   
-  # Fit the model with OLS
+  # fit the model with OLS
   lin_reg &lt;- lm.fit(X,y)
 
-  # Compute standard errors 
+  # compute standard errors 
   se &lt;- switch(standard_error,      
                normal = sqrt( (1/(n-2)*sum((lin_reg$residuals)^2) * solve(t(X) %*% X)[diag(T,2,2)])) ,
                robust = sqrt( (solve(t(X) %*% X) %*% t(X) %*% diag((lin_reg$residuals)^2) %*% X %*% solve(t(X) %*% X))[diag(T,2,2)]),
                stop(&quot;Unknown distribution&quot;)
-  )
+               )
   
-  # t-statistic and p-values
+  # compute t-statistic and p-values
   t_stat  &lt;- (lin_reg$coefficients - beta_0) / se
-  p_value &lt;- 2 * (1 - pnorm(abs(t_stat)))
+  p_value &lt;- 2 * (1 - pt(abs(t_stat), df = n - 2))
   
-  # beta_0 will bot be changed, therfore it doesen&#39;t have to be returned 
+   
   data.frame(t_stat_beta1 = t_stat[1], t_stat_beta2 = t_stat[2],
              p_value_beta1 = p_value[1], p_value_beta2 = p_value[2], 
-             n, error_dist, standard_error, beta1 = beta[1], beta2 = beta[2])
-}
-sample_t_stat()</code></pre>
-<p>Now, we have a function wich takes multiple parameters. We can look how the test performs with different sample sizes,
-error distribution, standard errors and coefficient values (here only <span class="math inline">\(\beta_2\)</span> is considered).</p>
-<pre class="r"><code>library(purrr)
-sim_t_stat &lt;- function(n, beta2, error_dist, standard_error){
+             beta1 = beta[1], beta2 = beta[2],
+             beta1_0 = beta_0[1],  beta2_0 = beta_0[2], 
+             n, error_dist, standard_error,  
+             stringsAsFactors = FALSE)
+}</code></pre>
+<p>We will look how the test performs with different sample sizes, error variances, standard errors and values for <span class="math inline">\(\beta_2\)</span>, keeping the rest of the possible input values fixed at their default values.</p>
+<pre class="r"><code># considered parameter combinations
+parameter_grid &lt;- expand.grid(
+  n = c(10, 50, seq(100, 500, 100)),
+  beta2 = seq(-0.5,0.5, 0.1), 
+  error_dist = c(&quot;homoscedastic&quot;, &quot;heteroscedastic&quot;),
+  standard_error = c(&quot;normal&quot;, &quot;robust&quot;), 
+  stringsAsFactors = FALSE
+  )</code></pre>
+<p>The simulation for a given set of parameters is performed by <code>mc_t_stat()</code> which runs <code>sim_t_stat()</code> 1000 times.</p>
+<pre class="r"><code>mc_t_stat &lt;- function(n, beta2, error_dist, standard_error){
   map_df(1:1000, ~ sample_t_stat(n = n,
-                           beta = c(0, beta2), 
+                           beta = c(0.5, beta2), 
                            error_dist = error_dist, 
                            standard_error = standard_error)
       )
 }</code></pre>
-<pre class="r"><code>parameter_grid &lt;- expand.grid(
-  n = c(10, 50, seq(100, 500, 100)),
-  beta2 = seq(-0.5,0.5, 0.1), 
-  error_dist = c(&quot;homo&quot;, &quot;hetero&quot;),
-  standard_error = c(&quot;normal&quot;, &quot;robust&quot;), 
-  stringsAsFactors = FALSE
-  )</code></pre>
-<pre class="r"><code>pmap_df(parameter_grid, sim_t_stat)</code></pre>
+<p>With the function <code>purrr::pmap_dfr()</code> we can iterate over the rows of the parameter grid and run <code>mc_t_stat()</code> for each set of parameters.</p>
+<pre class="r"><code>system.time(
+res &lt;- pmap_dfr(parameter_grid, mc_t_stat)
+)</code></pre>
+<pre><code>##    user  system elapsed 
+##  391.59   25.03  435.35</code></pre>
+<p>This takes a while. However, if I simply add the line <code>plan(multiprocess)</code> and switch from
+<code>purrr::pmap_dfr()</code> to <code>furrr::future_pmap_dfr()</code> the computation time on my computer is reduced significantly.</p>
+<pre class="r"><code>library(furrr)
+plan(multiprocess)
+system.time(
+res2 &lt;- future_pmap_dfr(parameter_grid, mc_t_stat)
+)</code></pre>
+<pre><code>##    user  system elapsed 
+##    0.28    0.03   39.69</code></pre>
+<p>I think this is one of the easiest ways to parallelization in R. The <code>future.apply</code> package does the same for the <code>apply</code> functions, in case you like those more.</p>
+<p>Finally, a quick look at the results.</p>
+<pre class="r"><code>res2 %&gt;% 
+  group_by(n, error_dist, standard_error , beta2) %&gt;%
+  summarise(rejection_rate = mean(p_value_beta2 &lt; 0.05)) %&gt;%
+  ggplot(aes(x = beta2, y = rejection_rate, col = standard_error )) + 
+  facet_grid(n ~ error_dist) +
+  geom_line() + 
+  geom_abline(intercept = 0.05, slope = 0, linetype = &quot;dashed&quot;)  + 
+  geom_vline(aes(xintercept = 0), linetype = &quot;dashed&quot;)</code></pre>
+<p><img src="/post/2019-08-23-monte-carlo-simulations-with-purr-and-furrr_files/figure-html/unnamed-chunk-6-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p>We would expect that the test rejects in 5 percent of the
+cases if the null hypothesis is true. That is the case when <span class="math inline">\(\beta_2 = 0\)</span>. However, we
+find that under heteroscedasticity the test with the non-robust standard errors rejects too often (the curves should go through the point where the two dashed lines intersect). This
+doesn’t even change when the sample size increases. The test with robust standard errors is doing here a much better job.</p>
+<p>If the errors are homoscedastic, both tests perform for sample sizes of approx. 100 and more almost equally well.</p>
